@@ -4,6 +4,9 @@ const { Markup } = require('telegraf');
 const addChildSessions = new Map();
 
 module.exports = {
+  isAdding(userId) {
+    return addChildSessions.has(userId);
+  },
   async startAddChild(ctx) {
     addChildSessions.set(ctx.from.id, { step: 'awaiting_name' });
     await ctx.reply(
@@ -14,7 +17,7 @@ module.exports = {
     );
   },
 
-  async processInput(ctx) {
+  async processInputStart(ctx) {
     if (!ctx.message || !ctx.message.text) return;
 
     const session = addChildSessions.get(ctx.from.id);
@@ -51,7 +54,7 @@ module.exports = {
 
   async cancelAddChild(ctx) {
     addChildSessions.delete(ctx.from.id);
-    await ctx.editMessageText('❌ Ajout de l’enfant annulé.');
+    await ctx.reply('❌ Ajout de l’enfant annulé.');
     await ctx.reply(
       'Vous pouvez revenir au menu des paramètres.',
       Markup.inlineKeyboard([

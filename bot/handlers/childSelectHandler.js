@@ -17,7 +17,7 @@ module.exports = async (ctx) => {
 
   const keyboard = getChildActionsKeyboard(child._id);
 
-  await ctx.editMessageText(
+  await ctx.reply(
     `👶 *${child.name}*\n\n💶 Tarif horaire : €${child.hourlyRate}\n🍽️ Repas : €${child.mealRate}\n🧼 Service : €${child.serviceRate}\nLimite d’heures par semaine : ${child.overtimeThreshold} \nMultiplicateur des heures supplémentaires : ${child.overtimeMultiplier} `,
     {
       parse_mode: 'Markdown',

@@ -17,5 +17,5 @@ module.exports = (bot) => {
 
   
   // Обработка ввода новых цен
-  bot.on('text', (ctx) => editPriceHandler.processInput(ctx));
+  //bot.on('text', (ctx) => editPriceHandler.processInput(ctx));
 };

@@ -33,7 +33,7 @@ module.exports = {
     // Convertir en objets moment
     const months = uniqueMonths.map((m) => moment(m, "YYYY-MM"));
 
-    await ctx.editMessageText("📅 Sélectionnez un mois pour voir l'historique :", {
+    await ctx.reply("📅 Sélectionnez un mois pour voir l'historique :", {
       reply_markup: monthsKeyboard(childId, months).reply_markup,
     });
   },
@@ -70,7 +70,7 @@ module.exports = {
     statsText += `   └ TOTAL : ${stats.totalPay.toFixed(2)}€\n\n`;
     statsText += `📌 Choisissez une date :`;
 
-    await ctx.editMessageText(statsText, {
+    await ctx.reply(statsText, {
       reply_markup: datesKeyboard(childId, yearMonth, uniqueDates).reply_markup,
     });
   },
@@ -154,7 +154,7 @@ module.exports = {
     const yearMonth = date.slice(0, 7);
     buttons.push([{ text: '⬅ Retour', callback_data: `history_dates_${childId}_${yearMonth}` }]);
 
-    await ctx.editMessageText(text, {
+    await ctx.reply(text, {
       reply_markup: { inline_keyboard: buttons }
     });
   }

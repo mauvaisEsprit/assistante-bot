@@ -21,7 +21,7 @@ module.exports = (bot) => {
     });
     await visit.save();
 
-    await ctx.editMessageText(
+    await ctx.reply(
       `✅ Visite enregistrée :\n📅 ${visit.date}\n🕒 De ${visit.startTime} à ${visit.endTime}\n🍽 Déjeuner : Oui`,
       {
         reply_markup: {
@@ -44,7 +44,7 @@ module.exports = (bot) => {
     });
     await visit.save();
 
-    await ctx.editMessageText(
+    await ctx.reply(
       `✅ Visite enregistrée :\n📅 ${visit.date}\n🕒 De ${visit.startTime} à ${visit.endTime}\n🍽 Déjeuner : Non`,
       {
         reply_markup: {

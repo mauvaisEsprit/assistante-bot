@@ -1,5 +1,6 @@
 const startHandler = require('../handlers/startHandler');
 const addChildHandler = require('../handlers/addChildHandler');
+const editPriceHandler = require('../handlers/editPriceHandler');
 const Child = require('../models/Child');
 const getSettingsKeyboard = require('../keyboards/settingsKeyboard');
 
@@ -12,10 +13,19 @@ module.exports = (bot) => {
     await addChildHandler.startAddChild(ctx);
   });
 
-  // Обработка сообщений (text), если пользователь в режиме добавления ребёнка
   bot.on('text', async (ctx) => {
-    await addChildHandler.processInput(ctx);
-  });
+  const userId = ctx.from.id;
+
+  if (addChildHandler.isAdding(userId)) {
+    await addChildHandler.processInputStart(ctx);
+  } else if (editPriceHandler.isEditing(userId)) {
+    await editPriceHandler.processInput(ctx);
+  } else {
+    // Другие случаи, например, игнорировать или показать сообщение по умолчанию
+  }
+});
+
+
 
   bot.action('cancel_add_child', async (ctx) => {
     await addChildHandler.cancelAddChild(ctx);
@@ -23,7 +33,7 @@ module.exports = (bot) => {
 
   bot.action('open_settings', async (ctx) => {
     const settingsKeyboard = require('../keyboards/settingsKeyboard')();
-    await ctx.editMessageText('⚙️ Paramètres :', { reply_markup: settingsKeyboard });
+    await ctx.reply('⚙️ Paramètres :', { reply_markup: settingsKeyboard });
   });
 
   // Удаление ребёнка — список
@@ -41,7 +51,7 @@ module.exports = (bot) => {
 
     buttons.push([{ text: '🔙 Retour', callback_data: 'open_settings' }]);
 
-    await ctx.editMessageText('Sélectionnez un enfant à supprimer :', {
+    await ctx.reply('Sélectionnez un enfant à supprimer :', {
       reply_markup: { inline_keyboard: buttons }
     });
   });
@@ -55,7 +65,7 @@ module.exports = (bot) => {
       return ctx.answerCbQuery("Enfant introuvable", { show_alert: true });
     }
 
-    await ctx.editMessageText(
+    await ctx.reply(
       `Voulez-vous vraiment supprimer l'enfant "${child.name}" ? Cette action est irréversible.`,
       {
         reply_markup: {
@@ -78,7 +88,7 @@ module.exports = (bot) => {
       await Child.findByIdAndDelete(childId);
       await ctx.answerCbQuery("Enfant supprimé");
 
-      await ctx.editMessageText('Enfant supprimé. Menu des paramètres :', {
+      await ctx.reply('Enfant supprimé. Menu des paramètres :', {
         reply_markup: getSettingsKeyboard()
       });
 
