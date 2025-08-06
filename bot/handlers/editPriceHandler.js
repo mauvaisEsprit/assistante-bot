@@ -62,7 +62,7 @@ module.exports = {
     );
   },
 
-  async processInput(ctx) {
+ async processInput(ctx) {
   const session = editingSessions.get(ctx.from.id);
   if (!session) return;
 
@@ -92,22 +92,24 @@ module.exports = {
     await Child.findByIdAndUpdate(childId, update);
     editingSessions.delete(ctx.from.id);
 
-    await ctx.reply("✅ Valeur mise à jour avec succès !");
-
     const child = await Child.findById(childId).lean();
     if (child) {
-      await ctx.reply(
-        `👶 *${child.name}*\n💶 €${child.hourlyRate} / heure\n🍽️ €${child.mealRate} repas\n🧼 €${child.serviceRate} service\nLimite d’heures par semaine : ${child.overtimeThreshold}\nMultiplicateur heures supplémentaires : ${child.overtimeMultiplier}`,
+      await ctx.editMessageText(
+        `✅ Valeur mise à jour avec succès !\n\n👶 *${child.name}*\n💶 €${child.hourlyRate} / heure\n🍽️ €${child.mealRate} repas\n🧼 €${child.serviceRate} service\nLimite d’heures par semaine : ${child.overtimeThreshold}\nMultiplicateur heures supplémentaires : ${child.overtimeMultiplier}`,
         {
           parse_mode: "Markdown",
-          reply_markup: getChildEditPricesKeyboard(child._id),
+          reply_markup: getChildEditPricesKeyboard(child._id).reply_markup,
         }
       );
+    } else {
+      await ctx.answerCbQuery("❌ Enfant introuvable après mise à jour.", { show_alert: true });
     }
+
   } catch (e) {
     console.error(e);
     await ctx.reply("❌ Erreur lors de la mise à jour des données.");
   }
 }
+
 
 };

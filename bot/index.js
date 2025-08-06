@@ -6,18 +6,11 @@ const webhook = require('./webhook'); // компонент для регист�
 const botLoader = require('./botLoader'); // загрузка бота и команд
 
 
-
-
-
 // 1. Подключение к MongoDB
 connectDB();
 
 // 2. Инициализация бота
 const bot = new Telegraf(process.env.BOT_TOKEN);
-
-
-  // Загружаем все команды и хендлеры через отдельный модуль
-//botLoader(bot);
 
 // 3. Инициализация Express
 const app = express();
@@ -31,12 +24,10 @@ app.use(express.json());
   console.error('❌ Ошибка при регистрации вебхука:', err);
 });
 
+// 4. Подключаем UpTime robot
 app.get('/ping', (req, res) => {
   res.send('Pong!');
 });
-
-
-
 
 // 5. Запускаем сервер
 const PORT = process.env.PORT || 3000;
