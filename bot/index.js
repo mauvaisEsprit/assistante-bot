@@ -31,6 +31,10 @@ app.use(express.json());
   console.error('❌ Ошибка при регистрации вебхука:', err);
 });
 
+app.get('/ping', (req, res) => {
+  res.send('Pong!');
+});
+
 
 
 
