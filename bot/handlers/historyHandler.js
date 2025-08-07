@@ -1,61 +1,42 @@
 const Visit = require("../models/Visit");
+
+
 const Child = require("../models/Child");
 const moment = require("moment");
+const authorizedUsers = require("../utils/authStore"); // добавили
 const {
   monthsKeyboard,
   datesKeyboard,
   visitsBackKeyboard,
 } = require("../keyboards/historyKeyboard");
-const { calculateMonthSummary } = require("../services/visitStatsService");
-const { calculateDaySummary } = require("../services/visitStatsService");
+const { calculateMonthSummary, calculateDaySummary } = require("../services/visitStatsService");
 
 module.exports = {
-  // Étape 1 — afficher les mois
   async showMonths(ctx) {
     const childId = ctx.callbackQuery.data.split("_")[2];
-
-    // Trouver toutes les visites de cet enfant
     const visits = await Visit.find({ childId }).lean();
 
     if (!visits.length) {
-      return ctx.answerCbQuery("Cet enfant n'a aucune visite", {
-        show_alert: true,
-      });
+      return ctx.answerCbQuery("Cet enfant n'a aucune visite", { show_alert: true });
     }
 
-    // Extraire les mois uniques des dates de visite
-    const uniqueMonths = [
-      ...new Set(
-        visits.map((v) => v.date.slice(0, 7)) // format YYYY-MM
-      ),
-    ].sort((a, b) => b.localeCompare(a)); // tri du plus récent au plus ancien
-
-    // Convertir en objets moment
-    const months = uniqueMonths.map((m) => moment(m, "YYYY-MM"));
+    const uniqueMonths = [...new Set(visits.map(v => v.date.slice(0, 7)))].sort((a, b) => b.localeCompare(a));
+    const months = uniqueMonths.map(m => moment(m, "YYYY-MM"));
 
     await ctx.reply("📅 Sélectionnez un mois pour voir l'historique :", {
       reply_markup: monthsKeyboard(childId, months).reply_markup,
     });
   },
 
-  // Étape 2 — afficher les dates
   async showDates(ctx) {
     const [, , childId, yearMonth] = ctx.callbackQuery.data.split("_");
-
-    const visits = await Visit.find({
-      childId,
-      date: { $regex: `^${yearMonth}` },
-    }).lean();
+    const visits = await Visit.find({ childId, date: { $regex: `^${yearMonth}` } }).lean();
 
     if (!visits.length) {
-      return ctx.answerCbQuery("Pas de visites pour ce mois", {
-        show_alert: true,
-      });
+      return ctx.answerCbQuery("Pas de visites pour ce mois", { show_alert: true });
     }
 
-    const uniqueDates = [...new Set(visits.map((v) => v.date))].sort();
-
-    // Obtenir les statistiques
+    const uniqueDates = [...new Set(visits.map(v => v.date))].sort();
     const stats = await calculateMonthSummary(childId, yearMonth);
 
     let statsText = `📅 ${moment(yearMonth, "YYYY-MM").format("MMMM YYYY")}\n`;
@@ -75,11 +56,10 @@ module.exports = {
     });
   },
 
-  // Étape 3 — afficher les visites du jour sélectionné
   async showVisitsForDate(ctx) {
     const [, , childId, date] = ctx.callbackQuery.data.split('_');
-
     const visits = await Visit.find({ childId, date }).lean();
+
     if (!visits.length) {
       return ctx.answerCbQuery('Pas de visites à cette date', { show_alert: true });
     }
@@ -89,26 +69,25 @@ module.exports = {
       return ctx.answerCbQuery('Données de l’enfant introuvables', { show_alert: true });
     }
 
-    // Obtenir les visites de la semaine avant la date (excluant la date)
+    // Определяем роль
+    const auth = authorizedUsers.get(ctx.from.id);
+    const isAdmin = auth?.role === 'admin';
+
+    // Подсчёты
     const weekStart = moment(date).startOf('isoWeek').format('YYYY-MM-DD');
     const visitsBeforeToday = await Visit.find({
       childId,
       date: { $gte: weekStart, $lt: date }
     }).lean();
 
-    // Somme des heures la semaine avant la date sélectionnée
     let hoursBeforeDay = visitsBeforeToday.reduce((sum, v) => {
       const start = moment(v.startTime, 'HH:mm');
       const end = moment(v.endTime, 'HH:mm');
       return sum + moment.duration(end.diff(start)).asHours();
     }, 0);
 
-    let totalHours = 0;
-    let regularHours = 0;
-    let overtimeHours = 0;
-    let mealCount = 0;
+    let totalHours = 0, regularHours = 0, overtimeHours = 0, mealCount = 0;
 
-    // Calcul des heures du jour avec seuil d'heures normales
     for (const v of visits) {
       const start = moment(v.startTime, 'HH:mm');
       const end = moment(v.endTime, 'HH:mm');
@@ -120,7 +99,6 @@ module.exports = {
 
       regularHours += regH;
       overtimeHours += overH;
-
       hoursBeforeDay += duration;
       totalHours += duration;
 
@@ -148,14 +126,14 @@ module.exports = {
     const buttons = [];
     visits.forEach(v => {
       text += `• ${v.startTime} - ${v.endTime}${v.hadLunch ? ' 🍽' : ''}\n`;
-      buttons.push([{ text: `🗑 Supprimer ${v.startTime}-${v.endTime}`, callback_data: `delv_${v._id}` }]);
+      if (isAdmin) { // только админ может удалять
+        buttons.push([{ text: `🗑 Supprimer ${v.startTime}-${v.endTime}`, callback_data: `delv_${v._id}` }]);
+      }
     });
 
     const yearMonth = date.slice(0, 7);
     buttons.push([{ text: '⬅ Retour', callback_data: `history_dates_${childId}_${yearMonth}` }]);
 
-    await ctx.reply(text, {
-      reply_markup: { inline_keyboard: buttons }
-    });
+    await ctx.reply(text, { reply_markup: { inline_keyboard: buttons } });
   }
-}
+};

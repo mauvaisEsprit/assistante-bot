@@ -3,29 +3,35 @@ const addChildHandler = require('../handlers/addChildHandler');
 const editPriceHandler = require('../handlers/editPriceHandler');
 const Child = require('../models/Child');
 const getSettingsKeyboard = require('../keyboards/settingsKeyboard');
+const pinCodeHandler = require('../handlers/pinCodeHandler');
 
 module.exports = (bot) => {
-  bot.start(async (ctx) => {
+  /*bot.start(async (ctx) => {
     await startHandler(ctx);
+  });*/
+
+  pinCodeHandler(bot);
+
+  bot.action('start_login', async (ctx) => {
+    await ctx.answerCbQuery();
+    await ctx.reply('🔐 Veuillez entrer le PIN pour accéder :');
   });
 
   bot.action('add_child', async (ctx) => {
     await addChildHandler.startAddChild(ctx);
   });
 
-  bot.on('text', async (ctx) => {
-  const userId = ctx.from.id;
+  /*bot.on('text', async (ctx) => {
+    const userId = ctx.from.id;
 
-  if (addChildHandler.isAdding(userId)) {
-    await addChildHandler.processInputStart(ctx);
-  } else if (editPriceHandler.isEditing(userId)) {
-    await editPriceHandler.processInput(ctx);
-  } else {
-    // Другие случаи, например, игнорировать или показать сообщение по умолчанию
-  }
-});
-
-
+    if (addChildHandler.isAdding(userId)) {
+      await addChildHandler.processInputStart(ctx);
+    } else if (editPriceHandler.isEditing(userId)) {
+      await editPriceHandler.processInput(ctx);
+    } else {
+      // Autres cas, par exemple ignorer ou afficher un message par défaut
+    }
+  });*/
 
   bot.action('cancel_add_child', async (ctx) => {
     await addChildHandler.cancelAddChild(ctx);
@@ -36,7 +42,7 @@ module.exports = (bot) => {
     await ctx.reply('⚙️ Paramètres :', { reply_markup: settingsKeyboard });
   });
 
-  // Удаление ребёнка — список
+  // Suppression d’un enfant — liste
   bot.action('delete_child', async (ctx) => {
     const children = await Child.find().lean();
 
@@ -56,7 +62,7 @@ module.exports = (bot) => {
     });
   });
 
-  // Подтверждение удаления
+  // Confirmation de suppression
   bot.action(/^delete_child_select_(.+)$/, async (ctx) => {
     const childId = ctx.match[1];
 
@@ -80,7 +86,7 @@ module.exports = (bot) => {
     );
   });
 
-  // Исполнение удаления
+  // Exécution de la suppression
   bot.action(/^delete_child_confirm_(.+)$/, async (ctx) => {
     const childId = ctx.match[1];
 

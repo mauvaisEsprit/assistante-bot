@@ -8,6 +8,7 @@ const addHours = require("./commands/addHours");
 const history = require("./commands/history");
 const { Telegraf, session } = require("telegraf");
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const pinCodeHandler = require("./handlers/pinCodeHandler");
 
 module.exports = async (app, bot) => {
   // Путь вебхука
@@ -19,6 +20,7 @@ module.exports = async (app, bot) => {
 
   // Регистрация команд
   start(bot);
+  pinCodeHandler(bot);
   childSelect(bot);
   childrenList(bot);
   back(bot); // если есть команда "назад"

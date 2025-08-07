@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const childSchema = new mongoose.Schema({
   name: {
@@ -28,10 +28,11 @@ const childSchema = new mongoose.Schema({
     type: Number,
     default: 1.25, // множитель сверхурочных
   },
+  pinCode: { type: String, unique: true, required: true },
   createdAt: {
     type: Date,
     default: Date.now,
-  }
+  },
 });
 
-module.exports = mongoose.model('Child', childSchema);
+module.exports = mongoose.model("Child", childSchema);
