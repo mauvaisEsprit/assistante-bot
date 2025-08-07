@@ -19,29 +19,48 @@ async function saveMessage(ctx, sentMessage) {
 
 module.exports = (bot) => {
   bot.start(async (ctx) => {
-    if (authorizedUsers.has(ctx.from.id)) {
-      const auth = authorizedUsers.get(ctx.from.id);
-      if (auth.role === 'admin') {
-        const msg1 = await ctx.reply('👋 Vous êtes connecté en tant qu\'administrateur. Accès à tous les enfants.');
-        await saveMessage(ctx, msg1);
-        await startHandler(ctx);
-        return;
-      } else {
-        const child = await Child.findById(auth.childId).lean();
-        if (!child) {
-          const msg = await ctx.reply('❌ Enfant introuvable.');
-          await saveMessage(ctx, msg);
-          return;
-        }
+  const userId = ctx.from.id;
 
-        const msg = await ctx.reply(`👶 Informations sur l'enfant : ${child.name}`);
+  if (authorizedUsers.has(userId)) {
+    const auth = authorizedUsers.get(userId);
+
+    if (auth.role === 'admin') {
+      const msg = await ctx.reply(
+        '👋 Vous êtes connecté en tant qu’administrateur. Accès à tous les enfants.'
+      );
+      await saveMessage(ctx, msg);
+      await startHandler(ctx);
+      return;
+    }
+
+    if (auth.role === 'child') {
+      const child = await Child.findById(auth.childId).lean();
+      if (!child) {
+        const msg = await ctx.reply('❌ Enfant introuvable.');
         await saveMessage(ctx, msg);
         return;
       }
+
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('📅 Historique des visites', `history_months_${child._id}`)],
+        [Markup.button.callback('🔙 Se déconnecter', 'logout')],
+      ]);
+
+      const msg = await ctx.reply(
+        `👶 Informations sur l'enfant : ${child.name}\n` +
+        `💶 Tarif horaire : €${child.hourlyRate}\n` +
+        `🍽️ Prix du repas : €${child.mealRate}\n` +
+        `🧼 Prix des services : €${child.serviceRate}`,
+        keyboard
+      );
+      await saveMessage(ctx, msg);
+      return;
     }
-    const msg = await ctx.reply('🔐 Veuillez entrer le code PIN pour accéder :');
-    await saveMessage(ctx, msg);
-  });
+  }
+
+  const msg = await ctx.reply('🔐 Veuillez entrer le code PIN pour accéder :');
+  await saveMessage(ctx, msg);
+});
 
   bot.on('text', async (ctx) => {
     const userId = ctx.from.id;
