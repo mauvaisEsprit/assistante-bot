@@ -3,7 +3,7 @@ const express = require('express');
 const { Telegraf } = require('telegraf');
 const connectDB = require('./config/db'); // путь зависит от структуры
 const webhook = require('./webhook'); // компонент для регистрации вебхука
-const botLoader = require('./botLoader'); // загрузка бота и команд
+
 
 
 // 1. Подключение к MongoDB

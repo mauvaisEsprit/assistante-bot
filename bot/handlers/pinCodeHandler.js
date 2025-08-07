@@ -71,6 +71,7 @@ module.exports = (bot) => {
         `🧼 Prix des services : €${child.serviceRate}`,
         Markup.inlineKeyboard([
           [Markup.button.callback('📅 Historique des visites', `history_months_${child._id}`)],
+          [Markup.button.callback('📄 Générer PDF Pajemploi', `pajemploi_${child._id}`)],
           [Markup.button.callback('🔙 Se déconnecter', 'logout')],
         ])
       );

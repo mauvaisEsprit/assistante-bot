@@ -7,8 +7,8 @@ const editPrice = require("./commands/editPrice"); // если есть кома
 const addHours = require("./commands/addHours");
 const history = require("./commands/history");
 const { Telegraf, session } = require("telegraf");
-const bot = new Telegraf(process.env.BOT_TOKEN);
 const pinCodeHandler = require("./handlers/pinCodeHandler");
+const pajemploi = require("./commands/pajemploi");
 
 module.exports = async (app, bot) => {
   // Путь вебхука
@@ -27,6 +27,7 @@ module.exports = async (app, bot) => {
   editPrice(bot); // если есть команда "редактировать цену"
   addHours(bot);
   history(bot);
+  pajemploi(bot);
 
   app.post(endpoint, (req, res) => {
     bot.handleUpdate(req.body, res);

@@ -9,9 +9,8 @@ module.exports = async () => {
     callback_data: `child_${child._id}`
   }]);
 
-  // Объединяем кнопки детей + назад в один массив
   return Markup.inlineKeyboard([
     ...buttons,
     [{ text: '🔙 Retour', callback_data: 'back_to_main' }]
-  ]).reply_markup;
+  ]);
 };
