@@ -2,23 +2,24 @@ const addChildHandler = require("../handlers/addChildHandler");
 const editPriceHandler = require("../handlers/editPriceHandler");
 const Child = require("../models/Child");
 const getSettingsKeyboard = require("../keyboards/settingsKeyboard");
+const sessionAuthMiddleware = require("../middleware/sessionAuthMiddleware");
 
 module.exports = (bot) => {
-  bot.action("add_child", async (ctx) => {
+  bot.action("add_child",sessionAuthMiddleware, async (ctx) => {
     await addChildHandler.startAddChild(ctx);
   });
 
-  bot.action("cancel_add_child", async (ctx) => {
+  bot.action("cancel_add_child",sessionAuthMiddleware, async (ctx) => {
     await addChildHandler.cancelAddChild(ctx);
   });
 
-  bot.action("open_settings", async (ctx) => {
+  bot.action("open_settings",sessionAuthMiddleware, async (ctx) => {
     const settingsKeyboard = require("../keyboards/settingsKeyboard")();
     await ctx.reply("⚙️ Paramètres :", { reply_markup: settingsKeyboard });
   });
 
   // Suppression d’un enfant — liste
-  bot.action("delete_child", async (ctx) => {
+  bot.action("delete_child",sessionAuthMiddleware, async (ctx) => {
     const children = await Child.find().lean();
 
     if (children.length === 0) {
@@ -42,7 +43,7 @@ module.exports = (bot) => {
   });
 
   // Confirmation de suppression
-  bot.action(/^delete_child_select_(.+)$/, async (ctx) => {
+  bot.action(/^delete_child_select_(.+)$/,sessionAuthMiddleware, async (ctx) => {
     const childId = ctx.match[1];
 
     const child = await Child.findById(childId).lean();
@@ -69,7 +70,7 @@ module.exports = (bot) => {
   });
 
   // Exécution de la suppression
-  bot.action(/^delete_child_confirm_(.+)$/, async (ctx) => {
+  bot.action(/^delete_child_confirm_(.+)$/,sessionAuthMiddleware, async (ctx) => {
     const childId = ctx.match[1];
 
     try {

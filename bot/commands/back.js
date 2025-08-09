@@ -3,15 +3,15 @@ const childrenListHandler = require("../handlers/childrenListHandler");
 const getChildActionsKeyboard = require("../keyboards/childActionsKeyboard");
 const Child = require("../models/Child");
 const Session = require("../models/Session");
-
+const sessionAuthMiddleware = require("../middleware/sessionAuthMiddleware");
 
 module.exports = (bot) => {
-  bot.action("back_to_main", async (ctx) => {
+  bot.action("back_to_main",sessionAuthMiddleware, async (ctx) => {
     await ctx.answerCbQuery();
     await startHandler(ctx);
   });
 
-  bot.action('select_child', async (ctx) => {
+  bot.action('select_child',sessionAuthMiddleware, async (ctx) => {
     const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
     
       if (!session || session.expiresAt < Date.now()) {
@@ -39,7 +39,7 @@ module.exports = (bot) => {
     }
   });
 
-  bot.action(/child_menu_(.+)/, async (ctx) => {
+  bot.action(/child_menu_(.+)/,sessionAuthMiddleware, async (ctx) => {
     const childIdFromButton = ctx.match[1];
     const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
     
