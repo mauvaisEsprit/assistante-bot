@@ -1,6 +1,7 @@
 const Visit = require('../../models/Visit');
 const moment = require('moment');
 
+
 async function checkIn(ctx) {
   const childId = ctx.match[1]; // из callback_data например checkin_<childId>
 
@@ -78,6 +79,4 @@ async function handleLunchAnswer(ctx) {
 }
 
 
-module.exports = checkIn;
-module.exports = checkOut;
-module.exports = handleLunchAnswer;
+module.exports = { checkIn, checkOut, handleLunchAnswer };
