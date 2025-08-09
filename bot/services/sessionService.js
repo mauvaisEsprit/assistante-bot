@@ -11,8 +11,7 @@ module.exports = {
     if (cache.has(telegramId)) {
       return cache.get(telegramId);
     }
-    const session = await sessionService.getSession(telegramId);
-
+    const session = await Session.findOne({ telegramId }).lean();
     if (session) cache.set(telegramId, session);
     return session;
   },
