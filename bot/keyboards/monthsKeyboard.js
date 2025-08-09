@@ -13,7 +13,7 @@ module.exports = (childId) => {
   const monthButtons = [];
   const now = moment();
 
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 6; i++) {
     const m = now.clone().subtract(i, 'months');
     const text = m.format('MMMM YYYY');
     const value = m.format('YYYY-MM');

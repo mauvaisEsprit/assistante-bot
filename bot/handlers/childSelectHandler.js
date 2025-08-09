@@ -1,6 +1,6 @@
 const Child = require("../models/Child");
 const getChildActionsKeyboard = require("../keyboards/childActionsKeyboard");
-const authorizedUsers = require("../utils/authStore"); // файл, где у тебя Map хранится
+const Session = require("../models/Session");
 
 module.exports = async (ctx) => {
   let childId = ctx.callbackQuery.data
@@ -16,8 +16,16 @@ module.exports = async (ctx) => {
     return ctx.answerCbQuery("Enfant non trouvé", { show_alert: true });
   }
 
-  const auth = authorizedUsers.get(ctx.from.id);
-  const keyboard = getChildActionsKeyboard(child._id, auth.role);
+  const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
+
+  if (!session || session.expiresAt < Date.now()) {
+    return ctx.answerCbQuery("Veuillez vous reconnecter", { show_alert: true });
+  }
+
+  const role = session.role;
+
+  console.log(role);
+  const keyboard = getChildActionsKeyboard(child._id, role);
 
   await ctx.reply(
     `👶 *${child.name}*\n\n💶 Tarif horaire : €${child.hourlyRate}\n🍽️ Repas : €${child.mealRate}\n🧼 Service : €${child.serviceRate}\nLimite d’heures par semaine : ${child.overtimeThreshold} \nMultiplicateur des heures supplémentaires : ${child.overtimeMultiplier} `,

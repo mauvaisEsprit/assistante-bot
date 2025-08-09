@@ -2,7 +2,8 @@ const startHandler = require("../handlers/startHandler");
 const childrenListHandler = require("../handlers/childrenListHandler");
 const getChildActionsKeyboard = require("../keyboards/childActionsKeyboard");
 const Child = require("../models/Child");
-const authorizedUsers = require("../utils/authStore"); // файл, где у тебя Map хранится
+const Session = require("../models/Session");
+
 
 module.exports = (bot) => {
   bot.action("back_to_main", async (ctx) => {
@@ -11,7 +12,14 @@ module.exports = (bot) => {
   });
 
   bot.action('select_child', async (ctx) => {
-    const auth = authorizedUsers.get(ctx.from.id);
+    const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
+    
+      if (!session || session.expiresAt < Date.now()) {
+        return ctx.answerCbQuery("Veuillez vous reconnecter", { show_alert: true });
+      }
+      const auth = session.role;
+    
+    
     if (!auth) {
       return ctx.answerCbQuery('Veuillez vous connecter, s’il vous plaît.', { show_alert: true });
     }
@@ -33,7 +41,12 @@ module.exports = (bot) => {
 
   bot.action(/child_menu_(.+)/, async (ctx) => {
     const childIdFromButton = ctx.match[1];
-    const auth = authorizedUsers.get(ctx.from.id);
+    const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
+    
+      if (!session || session.expiresAt < Date.now()) {
+        return ctx.answerCbQuery("Veuillez vous reconnecter", { show_alert: true });
+      }
+      const auth = session.role;
 
     if (!auth) {
       return ctx.answerCbQuery("⛔ Vous n'êtes pas autorisé", { show_alert: true });

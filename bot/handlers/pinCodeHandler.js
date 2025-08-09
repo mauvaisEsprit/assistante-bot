@@ -1,138 +1,114 @@
-const Child = require('../models/Child');
-require('dotenv').config();
-const startHandler = require('../handlers/startHandler');
-const { Markup } = require('telegraf');
-const authorizedUsers = require('../utils/authStore');
-const addChildHandler = require('../handlers/addChildHandler');
-const editPriceHandler = require('../handlers/editPriceHandler');
-
-// Хранилище сообщений userId -> [{chatId, messageId}]
-const userMessages = new Map();
-
-async function saveMessage(ctx, sentMessage) {
-  const userId = ctx.from.id;
-  if (!userMessages.has(userId)) {
-    userMessages.set(userId, []);
-  }
-  userMessages.get(userId).push({ chatId: sentMessage.chat.id, messageId: sentMessage.message_id });
-}
+const Child = require("../models/Child");
+const Session = require("../models/Session");
+require("dotenv").config();
+const startHandler = require("../handlers/startHandler");
+const childActionsKeyboard = require("../keyboards/childActionsKeyboard");
+const addChildHandler = require("./addChildHandler");
+const editPriceHandler = require("./editPriceHandler");
 
 module.exports = (bot) => {
   bot.start(async (ctx) => {
-  const userId = ctx.from.id;
+  const telegramId = ctx.from.id;
+  let session = await Session.findOne({ telegramId }).lean();
 
-  if (authorizedUsers.has(userId)) {
-    const auth = authorizedUsers.get(userId);
-
-    if (auth.role === 'admin') {
-      const msg = await ctx.reply(
-        '👋 Vous êtes connecté en tant qu’administrateur. Accès à tous les enfants.'
-      );
-      await saveMessage(ctx, msg);
-      await startHandler(ctx);
-      return;
-    }
-
-    if (auth.role === 'child') {
-      const child = await Child.findById(auth.childId).lean();
-      if (!child) {
-        const msg = await ctx.reply('❌ Enfant introuvable.');
-        await saveMessage(ctx, msg);
-        return;
-      }
-
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('📅 Historique des visites', `history_months_${child._id}`)],
-        [Markup.button.callback('🔙 Se déconnecter', 'logout')],
-      ]);
-
-      const msg = await ctx.reply(
-        `👶 Informations sur l'enfant : ${child.name}\n` +
-        `💶 Tarif horaire : €${child.hourlyRate}\n` +
-        `🍽️ Prix du repas : €${child.mealRate}\n` +
-        `🧼 Prix des services : €${child.serviceRate}`,
-        keyboard
-      );
-      await saveMessage(ctx, msg);
-      return;
-    }
+  if (session && session.expiresAt < Date.now()) {
+    await Session.deleteOne({ _id: session._id });
+    session = null;
   }
 
-  const msg = await ctx.reply('🔐 Veuillez entrer le code PIN pour accéder :');
-  await saveMessage(ctx, msg);
+  if (!session) {
+    return ctx.reply("🔐 Veuillez saisir votre code PIN :");
+  }
+
+  // Session active — afficher le menu selon le rôle
+  if (session.role === "admin") {
+    await ctx.reply("✅ Vous êtes connecté en tant qu’administrateur.");
+    return startHandler(ctx);
+  }
+
+  if (session.role === "parent" && session.childId) {
+    const child = await Child.findById(session.childId).lean();
+    if (!child) {
+      await ctx.reply("❌ Enfant introuvable. Veuillez vous reconnecter.");
+      await Session.deleteOne({ telegramId });
+      return ctx.reply("🔐 Veuillez saisir votre code PIN :");
+    }
+
+    const keyboard = childActionsKeyboard(child._id, "parent");
+    return ctx.reply(
+      `✅ Vous êtes connecté en tant que parent de l’enfant ${child.name}\n\n👶 *${child.name}*\n💶 Tarif horaire : €${child.hourlyRate}\n🍽️ Repas : €${child.mealRate}\n🧼 Service : €${child.serviceRate}`,
+      { parse_mode: "Markdown", reply_markup: keyboard.reply_markup }
+    );
+  }
+
+  // Rôle inconnu — forcer la reconnexion
+  await Session.deleteOne({ telegramId });
+  return ctx.reply("🔐 Veuillez saisir votre code PIN :");
 });
 
-  bot.on('text', async (ctx) => {
-    const userId = ctx.from.id;
 
-    // Если пользователь НЕ авторизован — ждем PIN
-    if (!authorizedUsers.has(userId)) {
+  bot.on("text", async (ctx) => {
+    const telegramId = ctx.from.id;
+
+    // Vérifier session active
+    let session = await Session.findOne({ telegramId }).lean();
+    if (session && session.expiresAt < Date.now()) {
+      await Session.deleteOne({ _id: session._id });
+      session = null;
+    }
+
+    if (!session) {
+      // Pas de session : on attend un PIN
       const pin = ctx.message.text.trim();
 
       if (pin === process.env.ADMIN_PIN) {
-        authorizedUsers.set(userId, { role: 'admin' });
-        await ctx.reply('✅ Vous êtes connecté en tant qu\'administrateur. Accès à tous les enfants.');
-        await startHandler(ctx);
-        return;
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+        await Session.findOneAndUpdate(
+          { telegramId },
+          { role: "admin", expiresAt },
+          { upsert: true }
+        );
+        await ctx.reply("✅ Vous êtes connecté en tant qu’administrateur.");
+        return startHandler(ctx);
       }
 
       const child = await Child.findOne({ pinCode: pin }).lean();
-      if (!child) {
-        return ctx.reply('❌ PIN incorrect. Veuillez réessayer :');
+      if (child) {
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+        await Session.findOneAndUpdate(
+          { telegramId },
+          { role: "parent", childId: child._id, expiresAt },
+          { upsert: true }
+        );
+
+        const keyboard = childActionsKeyboard(child._id, "parent");
+
+        return ctx.reply(
+          `✅ Vous êtes connecté en tant que parent de ${child.name}\n\n👶 *${child.name}*\n💶 Tarif horaire : €${child.hourlyRate}\n🍽️ Repas : €${child.mealRate}\n🧼 Service : €${child.serviceRate}\n`,
+          { parse_mode: "Markdown", reply_markup: keyboard.reply_markup }
+        );
       }
 
-      authorizedUsers.set(userId, { role: 'child', childId: child._id });
-      await ctx.reply(
-        `✅ Connexion réussie ! Informations sur l'enfant :\n\n` +
-        `👶 Nom : ${child.name}\n` +
-        `💶 Tarif horaire : €${child.hourlyRate}\n` +
-        `🍽️ Prix du repas : €${child.mealRate}\n` +
-        `🧼 Prix des services : €${child.serviceRate}`,
-        Markup.inlineKeyboard([
-          [Markup.button.callback('📅 Historique des visites', `history_months_${child._id}`)],
-          [Markup.button.callback('📄 Générer PDF Pajemploi', `pajemploi_${child._id}`)],
-          [Markup.button.callback('🔙 Se déconnecter', 'logout')],
-        ])
-      );
-      return;
+      return ctx.reply("❌ PIN incorrect. Veuillez réessayer.");
     }
 
-    // Если авторизован — смотрим, в каком режиме пользователь:
-    if (addChildHandler.isAdding(userId)) {
-      await addChildHandler.processInputStart(ctx);
-    } else if (editPriceHandler.isEditing(userId)) {
-      await editPriceHandler.processInput(ctx);
+    // Session active — gérer les autres modes
+    const userId = telegramId;
+
+    if (await addChildHandler.isAdding(userId)) {
+      return addChildHandler.processInputStart(ctx);
+    } else if (await editPriceHandler.isEditing(userId)) {
+      return editPriceHandler.processInput(ctx);
     } else {
-      // Другие случаи: либо игнорировать, либо выводить меню, либо сообщение
-      // Например:
-      await ctx.reply('❓ Commande ou action inconnue. Utilisez le menu.');
+      // Sinon message par défaut
+      return ctx.reply("❓ Commande ou action inconnue. Utilisez le menu.");
     }
   });
 
-  bot.action('logout', async (ctx) => {
-    authorizedUsers.delete(ctx.from.id);
+   bot.action("logout", async (ctx) => {
+  await Session.deleteOne({ telegramId: ctx.from.id });
+  await ctx.answerCbQuery("Vous avez été déconnecté.");
+  await ctx.reply("👋 Vous êtes bien déconnecté. Pour vous reconnecter, veuillez saisir votre code PIN.");
+});
 
-    const msgs = userMessages.get(ctx.from.id) || [];
-    for (const { chatId, messageId } of msgs) {
-      try {
-        await ctx.telegram.deleteMessage(chatId, messageId);
-      } catch (e) {
-        // игнорируем ошибки
-      }
-    }
-    userMessages.delete(ctx.from.id);
-
-    await ctx.answerCbQuery('Vous êtes déconnecté');
-
-    // Красивое приветственное сообщение с кнопкой "Войти снова"
-    const text = `👋 Vous vous êtes déconnecté avec succès.\n\n` +
-                 `Pour vous reconnecter, cliquez sur le bouton ci-dessous et saisissez votre code PIN.`;
-
-    const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('🔐 Se reconnecter', 'start_login')]
-    ]);
-
-    const msg = await ctx.reply(text, keyboard);
-    await saveMessage(ctx, msg);
-  });
 };

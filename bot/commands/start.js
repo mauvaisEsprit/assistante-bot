@@ -1,64 +1,43 @@
-const startHandler = require('../handlers/startHandler');
-const addChildHandler = require('../handlers/addChildHandler');
-const editPriceHandler = require('../handlers/editPriceHandler');
-const Child = require('../models/Child');
-const getSettingsKeyboard = require('../keyboards/settingsKeyboard');
-const pinCodeHandler = require('../handlers/pinCodeHandler');
+const addChildHandler = require("../handlers/addChildHandler");
+const editPriceHandler = require("../handlers/editPriceHandler");
+const Child = require("../models/Child");
+const getSettingsKeyboard = require("../keyboards/settingsKeyboard");
 
 module.exports = (bot) => {
-  /*bot.start(async (ctx) => {
-    await startHandler(ctx);
-  });*/
-
-  pinCodeHandler(bot);
-
-  bot.action('start_login', async (ctx) => {
-    await ctx.answerCbQuery();
-    await ctx.reply('🔐 Veuillez entrer le PIN pour accéder :');
-  });
-
-  bot.action('add_child', async (ctx) => {
+  bot.action("add_child", async (ctx) => {
     await addChildHandler.startAddChild(ctx);
   });
 
-  /*bot.on('text', async (ctx) => {
-    const userId = ctx.from.id;
-
-    if (addChildHandler.isAdding(userId)) {
-      await addChildHandler.processInputStart(ctx);
-    } else if (editPriceHandler.isEditing(userId)) {
-      await editPriceHandler.processInput(ctx);
-    } else {
-      // Autres cas, par exemple ignorer ou afficher un message par défaut
-    }
-  });*/
-
-  bot.action('cancel_add_child', async (ctx) => {
+  bot.action("cancel_add_child", async (ctx) => {
     await addChildHandler.cancelAddChild(ctx);
   });
 
-  bot.action('open_settings', async (ctx) => {
-    const settingsKeyboard = require('../keyboards/settingsKeyboard')();
-    await ctx.reply('⚙️ Paramètres :', { reply_markup: settingsKeyboard });
+  bot.action("open_settings", async (ctx) => {
+    const settingsKeyboard = require("../keyboards/settingsKeyboard")();
+    await ctx.reply("⚙️ Paramètres :", { reply_markup: settingsKeyboard });
   });
 
   // Suppression d’un enfant — liste
-  bot.action('delete_child', async (ctx) => {
+  bot.action("delete_child", async (ctx) => {
     const children = await Child.find().lean();
 
     if (children.length === 0) {
-      return ctx.answerCbQuery('Aucun enfant à supprimer', { show_alert: true });
+      return ctx.answerCbQuery("Aucun enfant à supprimer", {
+        show_alert: true,
+      });
     }
 
-    const buttons = children.map(child => ([{
-      text: child.name,
-      callback_data: `delete_child_select_${child._id}`
-    }]));
+    const buttons = children.map((child) => [
+      {
+        text: child.name,
+        callback_data: `delete_child_select_${child._id}`,
+      },
+    ]);
 
-    buttons.push([{ text: '🔙 Retour', callback_data: 'open_settings' }]);
+    buttons.push([{ text: "🔙 Retour", callback_data: "open_settings" }]);
 
-    await ctx.reply('Sélectionnez un enfant à supprimer :', {
-      reply_markup: { inline_keyboard: buttons }
+    await ctx.reply("Sélectionnez un enfant à supprimer :", {
+      reply_markup: { inline_keyboard: buttons },
     });
   });
 
@@ -77,11 +56,14 @@ module.exports = (bot) => {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '✅ Oui, supprimer', callback_data: `delete_child_confirm_${childId}` },
-              { text: '❌ Annuler', callback_data: 'delete_child' }
-            ]
-          ]
-        }
+              {
+                text: "✅ Oui, supprimer",
+                callback_data: `delete_child_confirm_${childId}`,
+              },
+              { text: "❌ Annuler", callback_data: "delete_child" },
+            ],
+          ],
+        },
       }
     );
   });
@@ -94,13 +76,14 @@ module.exports = (bot) => {
       await Child.findByIdAndDelete(childId);
       await ctx.answerCbQuery("Enfant supprimé");
 
-      await ctx.reply('Enfant supprimé. Menu des paramètres :', {
-        reply_markup: getSettingsKeyboard()
+      await ctx.reply("Enfant supprimé. Menu des paramètres :", {
+        reply_markup: getSettingsKeyboard(),
       });
-
     } catch (e) {
       console.error(e);
-      await ctx.answerCbQuery("Erreur lors de la suppression de l'enfant", { show_alert: true });
+      await ctx.answerCbQuery("Erreur lors de la suppression de l'enfant", {
+        show_alert: true,
+      });
     }
   });
 };

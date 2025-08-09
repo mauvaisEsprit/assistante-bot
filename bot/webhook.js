@@ -10,34 +10,48 @@ const { Telegraf, session } = require("telegraf");
 const pinCodeHandler = require("./handlers/pinCodeHandler");
 const pajemploi = require("./commands/pajemploi");
 
+const bodyParser = require("body-parser");
+
 module.exports = async (app, bot) => {
-  // Путь вебхука
   const endpoint = "/telegram-webhook";
 
-  app.use(express.json());
-  // Инициализация сессий
+  // НЕ ставим express.json() на маршрут вебхука, чтобы Telegraf мог сам парсить тело
+  // app.use(express.json()); // <-- УБРАТЬ или поставить ниже, но не на /telegram-webhook
+
+  // Регистрируем middleware сессий
   bot.use(session());
 
-  // Регистрация команд
-  start(bot);
+  // Регистрируем webhook callback для Telegraf
+  app.use(bot.webhookCallback(endpoint));
+
+  // Регистрация команд и хендлеров
   pinCodeHandler(bot);
-  childSelect(bot);
+  start(bot);
   childrenList(bot);
-  back(bot); // если есть команда "назад"
-  editPrice(bot); // если есть команда "редактировать цену"
+  childSelect(bot);
+  back(bot);
+  editPrice(bot);
   addHours(bot);
   history(bot);
   pajemploi(bot);
 
-  app.post(endpoint, (req, res) => {
-    bot.handleUpdate(req.body, res);
-  });
-
-  // Регистрация синего меню команд
+  // Регистрируем команды для Telegram меню
   await bot.telegram.setMyCommands([
     { command: "start", description: "Redémarrer le bot" },
   ]);
 
-  // Установка вебхука
+  // Устанавливаем webhook в Telegram
   await bot.telegram.setWebhook(`${process.env.WEBHOOK_URL}${endpoint}`);
+
+  // Можно оставить express.json() для других маршрутов, но НЕ для webhook
+  app.use(
+    express.json({
+      strict: true,
+      limit: "1mb",
+      // optional: пропускать путь webhook
+      // verify: (req, res, buf) => {
+      //   if (req.originalUrl === endpoint) throw new Error('Skip JSON parsing for webhook');
+      // }
+    })
+  );
 };

@@ -29,7 +29,7 @@ const childSchema = new mongoose.Schema({
     default: 1.25, // множитель сверхурочных
   },
   pinCode: { type: String, unique: true, required: true },
-  telegramUsers: [{ type: Number }],
+  //telegramUsers: [{ type: Number }],
   createdAt: {
     type: Date,
     default: Date.now,
