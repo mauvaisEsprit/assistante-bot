@@ -72,7 +72,7 @@ module.exports = (bot) => {
           expiresAt
         });
 
-        const keyboard = childActionsKeyboard(child._id, "parent");
+        const keyboard = await childActionsKeyboard(child._id, "parent");
         return ctx.reply(
           `✅ Vous êtes connecté en tant que parent de ${child.name}\n\n👶 *${child.name}*\n💶 Tarif horaire : €${child.hourlyRate}\n🍽️ Repas : €${child.mealRate}\n🧼 Service : €${child.serviceRate}\n`,
           { parse_mode: "Markdown", reply_markup: keyboard.reply_markup }
