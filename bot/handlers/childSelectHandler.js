@@ -1,6 +1,7 @@
 const Child = require("../models/Child");
 const getChildActionsKeyboard = require("../keyboards/childActionsKeyboard");
 const Session = require("../models/Session");
+const sessionService = require("../services/sessionService");
 
 module.exports = async (ctx) => {
   let childId = ctx.callbackQuery.data
