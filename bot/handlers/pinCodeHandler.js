@@ -58,7 +58,7 @@ module.exports = (bot) => {
 
       if (pin === process.env.ADMIN_PIN) {
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-        await sessionService.saveSession(telegramId, { role: "admin", expiresAt });
+        await sessionService.updateSession(telegramId, { role: "admin", expiresAt });
         await ctx.reply("✅ Vous êtes connecté en tant qu’administrateur.");
         return startHandler(ctx);
       }
@@ -66,7 +66,7 @@ module.exports = (bot) => {
       const child = await Child.findOne({ pinCode: pin }).lean();
       if (child) {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-        await sessionService.saveSession(telegramId, {
+        await sessionService.updateSession(telegramId, {
           role: "parent",
           childId: child._id,
           expiresAt
