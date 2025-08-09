@@ -92,6 +92,7 @@ module.exports = (bot) => {
   });
 
   bot.action("logout", async (ctx) => {
+    const telegramId = ctx.from.id;
     await sessionService.deleteSession(telegramId);
     await ctx.answerCbQuery("Vous avez été déconnecté.");
     await ctx.reply("👋 Vous êtes bien déconnecté. Pour vous reconnecter, veuillez saisir votre code PIN.");
