@@ -10,7 +10,7 @@ module.exports = {
   },
 
   async startEditing(ctx) {
-    console.log('edit');
+
     const match = ctx.callbackQuery.data.match(/edit_price_(hourly|meal|service|overtimeThreshold|overtimeMultiplier|name)_(.+)/);
     if (!match) {
       return ctx.answerCbQuery('ID enfant invalide', { show_alert: true });
@@ -18,7 +18,7 @@ module.exports = {
 
   
 
-    console.log(match);
+
     const field = match[1];
     const childId = match[2];
 

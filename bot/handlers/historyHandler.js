@@ -121,7 +121,7 @@ module.exports = {
     
 
     const isAdmin = session.role === "admin";
-    console.log(isAdmin);
+
 
     // Подсчёты
     const weekStart = moment(date).startOf("isoWeek").format("YYYY-MM-DD");
@@ -184,7 +184,7 @@ module.exports = {
     visits.forEach((v) => {
       text += `• ${v.startTime} - ${v.endTime}${v.hadLunch ? " 🍽" : ""}\n`;
       if (isAdmin) {
-        console.log('ok ok ok');
+
         // только админ может удалять
         buttons.push([
           {

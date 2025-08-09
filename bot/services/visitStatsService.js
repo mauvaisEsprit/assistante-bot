@@ -138,7 +138,7 @@ async function calculateDaySummary(childId, date) {
 
     weeklyHours += hours;
 
-    console.log(`Дата: ${v.date}, Часы: ${hours.toFixed(2)}, Регулярные: ${regH.toFixed(2)}, Сверхурочные: ${overH.toFixed(2)}, Накопленные часы недели: ${weeklyHours.toFixed(2)}`);
+  
   }
 
   const totalHours = regularHours + overtimeHours;
@@ -149,7 +149,7 @@ async function calculateDaySummary(childId, date) {
   const servicePay = countedDays.size * child.serviceRate;
   const totalPay = regularPay + overtimePay + mealsPay + servicePay;
 
-  console.log(`Итог по дню ${date} — всего часов: ${totalHours.toFixed(2)}, обычных: ${regularHours.toFixed(2)}, сверхурочных: ${overtimeHours.toFixed(2)}`);
+
 
   return { totalHours, regularHours, overtimeHours, mealsCount, daysCount: countedDays.size, totalPay, regularPay, overtimePay, mealsPay, servicePay };
 }

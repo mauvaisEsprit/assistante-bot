@@ -24,7 +24,7 @@ module.exports = async (ctx) => {
 
   const role = session.role;
 
-  console.log(role);
+
   const keyboard = getChildActionsKeyboard(child._id, role);
 
   await ctx.reply(

@@ -67,7 +67,6 @@ module.exports = (bot) => {
 
     const keyboard = getChildActionsKeyboard(child._id, auth.role); 
     // можно передать роль, чтобы убрать лишние кнопки для родителей
-    console.log(`🔍 Rôle de l'utilisateur : ${auth.role}`);
     await ctx.reply(
       `👶 *${child.name}*\n\n💶 Tarif horaire : €${child.hourlyRate}\n🍽️ Repas : €${child.mealRate}\n🧼 Service : €${child.serviceRate}\nLimite d’heures par semaine : ${child.overtimeThreshold} \nMultiplicateur des heures supplémentaires : ${child.overtimeMultiplier} `,
       {
