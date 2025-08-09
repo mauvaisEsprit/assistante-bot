@@ -16,7 +16,9 @@ module.exports = async (ctx) => {
     return ctx.answerCbQuery("Enfant non trouvé", { show_alert: true });
   }
 
-  const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
+  const telegramId = ctx.from.id;
+  const session = await sessionService.getSession(telegramId);
+
 
   if (!session || session.expiresAt < Date.now()) {
     return ctx.answerCbQuery("Veuillez vous reconnecter", { show_alert: true });

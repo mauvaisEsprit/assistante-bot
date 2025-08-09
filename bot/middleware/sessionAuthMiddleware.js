@@ -3,7 +3,8 @@ const Session = require("../models/Session");
 
 async function authMiddleware(ctx, next) {
   const telegramId = ctx.from.id;
-  const session = await Session.findOne({ telegramId }).lean();
+  const session = await sessionService.getSession(telegramId);
+
 
   if (!session) {
     await ctx.answerCbQuery("❌ Vous n'êtes pas connecté. Veuillez vous connecter.");

@@ -4,6 +4,7 @@ const getChildActionsKeyboard = require("../keyboards/childActionsKeyboard");
 const Child = require("../models/Child");
 const Session = require("../models/Session");
 const sessionAuthMiddleware = require("../middleware/sessionAuthMiddleware");
+const sessionService = require("../services/sessionService");
 
 module.exports = (bot) => {
   bot.action("back_to_main",sessionAuthMiddleware, async (ctx) => {
@@ -12,7 +13,9 @@ module.exports = (bot) => {
   });
 
   bot.action('select_child',sessionAuthMiddleware, async (ctx) => {
-    const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
+    const telegramId = ctx.from.id;
+    const session = await sessionService.getSession(telegramId);
+
     
       if (!session || session.expiresAt < Date.now()) {
         return ctx.answerCbQuery("Veuillez vous reconnecter", { show_alert: true });
@@ -40,8 +43,10 @@ module.exports = (bot) => {
   });
 
   bot.action(/child_menu_(.+)/,sessionAuthMiddleware, async (ctx) => {
+    const telegramId = ctx.from.id;
     const childIdFromButton = ctx.match[1];
-    const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
+    const session = await sessionService.getSession(telegramId = ctx.from.id);
+
     
       if (!session || session.expiresAt < Date.now()) {
         return ctx.answerCbQuery("Veuillez vous reconnecter", { show_alert: true });

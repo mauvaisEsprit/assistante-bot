@@ -1,18 +1,17 @@
 const Child = require('../models/Child');
-const Session = require('../models/Session');
+const sessionService = require('../services/sessionService'); // вот здесь подключаем твой сервис
 const { Markup } = require('telegraf');
 
 module.exports = {
-  async isAdding(userId) {
-    const session = await Session.findOne({ telegramId: userId }).lean();
+  async isAdding(telegramId) {
+    const session = await sessionService.getSession(telegramId);
     return session?.addChildStep != null;
   },
 
   async startAddChild(ctx) {
-    await Session.findOneAndUpdate(
-      { telegramId: ctx.from.id },
-      { addChildStep: 'awaiting_name' },
-      { upsert: true }
+    await sessionService.updateSession(
+      ctx.from.id,
+      { addChildStep: 'awaiting_name' }
     );
 
     await ctx.reply(
@@ -26,7 +25,8 @@ module.exports = {
   async processInputStart(ctx) {
     if (!ctx.message || !ctx.message.text) return;
 
-    const session = await Session.findOne({ telegramId: ctx.from.id });
+    const telegramId = ctx.from.id;
+    const session = await sessionService.getSession(telegramId);
     if (!session?.addChildStep) return;
 
     if (session.addChildStep === 'awaiting_name') {
@@ -35,10 +35,9 @@ module.exports = {
         return ctx.reply('⚠️ Le nom ne peut pas être vide. Veuillez réessayer :');
       }
 
-      await Session.findOneAndUpdate(
-        { telegramId: ctx.from.id },
-        { addChildStep: 'awaiting_pin', tempChildName: name },
-        { upsert: true }
+      await sessionService.updateSession(
+        ctx.from.id,
+        { addChildStep: 'awaiting_pin', tempChildName: name }
       );
 
       return ctx.reply(
@@ -73,8 +72,8 @@ module.exports = {
 
       await child.save();
 
-      await Session.findOneAndUpdate(
-        { telegramId: ctx.from.id },
+      await sessionService.updateSession(
+        ctx.from.id,
         { $unset: { addChildStep: "", tempChildName: "" } }
       );
 
@@ -90,8 +89,8 @@ module.exports = {
   },
 
   async cancelAddChild(ctx) {
-    await Session.findOneAndUpdate(
-      { telegramId: ctx.from.id },
+    await sessionService.updateSession(
+      ctx.from.id,
       { $unset: { addChildStep: "", tempChildName: "" } }
     );
 

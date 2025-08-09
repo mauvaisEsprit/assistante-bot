@@ -110,7 +110,9 @@ module.exports = {
     }
 
     // Определяем роль
-    const session = await Session.findOne({ telegramId: ctx.from.id }).lean();
+    const telegramId = ctx.from.id;
+    const session = await sessionService.getSession(telegramId);
+
 
     if (!session || session.expiresAt < Date.now()) {
       return ctx.answerCbQuery("Veuillez vous reconnecter", {
