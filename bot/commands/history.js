@@ -1,11 +1,12 @@
 const Visit = require("../models/Visit");
 const historyHandler = require("../handlers/historyHandler");
+const sessionAuthMiddleware = require("../middleware/sessionAuthMiddleware");
 
 
 
 module.exports = (bot) => {
   // Étape 1 — liste des mois
-  bot.action(/^history_months_(\w{24})$/, historyHandler.showMonths);
+  bot.action(/^history_months_(\w{24})$/, sessionAuthMiddleware, historyHandler.showMonths);
 
   // Étape 2 — liste des dates dans le mois
   bot.action(
@@ -15,12 +16,12 @@ module.exports = (bot) => {
 
   // Étape 3 — visites du jour
   bot.action(
-    /^history_day_(\w{24})_(\d{4}-\d{2}-\d{2})$/,
+    /^history_day_(\w{24})_(\d{4}-\d{2}-\d{2})$/, sessionAuthMiddleware,
     historyHandler.showVisitsForDate
   );
 
   // Suppression — confirmation
-  bot.action(/^delv_(.+)$/, async (ctx) => {
+  bot.action(/^delv_(.+)$/, sessionAuthMiddleware, async (ctx) => {
     const visitId = ctx.match[1];
     const visit = await Visit.findById(visitId);
 
@@ -46,7 +47,7 @@ module.exports = (bot) => {
   });
 
   // Suppression — exécution
-  bot.action(/^confirm_delv_(.+)$/, async (ctx) => {
+  bot.action(/^confirm_delv_(.+)$/, sessionAuthMiddleware,  async (ctx) => {
   const visitId = ctx.match[1];
   const visit = await Visit.findById(visitId);
 
