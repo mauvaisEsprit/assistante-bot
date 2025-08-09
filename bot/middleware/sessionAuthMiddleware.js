@@ -1,5 +1,6 @@
 // middleware проверки сессии (просто пример)
 const Session = require("../models/Session");
+const sessionService = require("../services/sessionService");
 
 async function authMiddleware(ctx, next) {
   const telegramId = ctx.from.id;
