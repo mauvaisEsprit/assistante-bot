@@ -10,7 +10,7 @@ module.exports = (bot) => {
 
   // Étape 2 — liste des dates dans le mois
   bot.action(
-    /^history_dates_(\w{24})_(\d{4}-\d{2})$/,
+    /^history_dates_(\w{24})_(\d{4}-\d{2})$/, sessionAuthMiddleware,
     historyHandler.showDates
   );
 
