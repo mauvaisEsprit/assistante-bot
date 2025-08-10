@@ -9,6 +9,7 @@ const history = require("./commands/history");
 const { Telegraf, session } = require("telegraf");
 const pinCodeHandler = require("./handlers/pinCodeHandler");
 const pajemploi = require("./commands/pajemploi");
+const checkInOut = require("./commands/checkInOut");
 
 
 const bodyParser = require("body-parser");
@@ -35,6 +36,7 @@ module.exports = async (app, bot) => {
   addHours(bot);
   history(bot);
   pajemploi(bot);
+  checkInOut(bot);
  
 
   // Регистрируем команды для Telegram меню
