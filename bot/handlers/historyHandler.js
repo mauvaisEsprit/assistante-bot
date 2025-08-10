@@ -4,21 +4,25 @@ const Session = require("../models/Session");
 const Child = require("../models/Child");
 const sessionService = require("../services/sessionService");
 const moment = require("moment");
+require("moment/locale/fr"); // подключаем французскую локаль
+moment.locale("fr");
+
 const {
   monthsKeyboard,
   datesKeyboard,
-  visitsBackKeyboard,
 } = require("../keyboards/historyKeyboard");
-const {
-  calculateMonthSummary,
-  calculateDaySummary,
-} = require("../services/visitStatsService");
+const { calculateMonthSummary } = require("../services/visitStatsService");
+
+// Функция для капитализации первой буквы строки
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
 
 module.exports = {
   async showMonths(ctx) {
     const childId = ctx.callbackQuery.data.split("_")[2];
     if (!Types.ObjectId.isValid(childId)) {
-      return ctx.reply("ID enfant invalide");
+      return ctx.reply("ID de l'enfant invalide");
     }
     const childObjectId = new Types.ObjectId(childId);
 
@@ -43,7 +47,7 @@ module.exports = {
   async showDates(ctx) {
     const [, , childId, yearMonth] = ctx.callbackQuery.data.split("_");
     if (!Types.ObjectId.isValid(childId)) {
-      return ctx.reply("ID enfant invalide");
+      return ctx.reply("ID de l'enfant invalide");
     }
     const childObjectId = new Types.ObjectId(childId);
 
@@ -61,7 +65,13 @@ module.exports = {
     const uniqueDates = [...new Set(visits.map((v) => v.date))].sort();
     const stats = await calculateMonthSummary(childId, yearMonth);
 
-    let statsText = `📅 ${moment(yearMonth, "YYYY-MM").format("MMMM YYYY")}\n`;
+    // Формируем заголовок с капитализацией месяца
+    const monthName = capitalizeFirstLetter(
+      moment(yearMonth, "YYYY-MM").format("MMMM")
+    );
+    const year = moment(yearMonth, "YYYY-MM").format("YYYY");
+
+    let statsText = `📅 ${monthName} ${year}\n`;
     statsText += `⏱ Heures totales : ${stats.totalHours.toFixed(2)}\n`;
     statsText += `   ├ Heures normales : ${stats.regularHours.toFixed(2)}\n`;
     statsText += `   └ Heures supplémentaires : ${stats.overtimeHours.toFixed(
@@ -90,7 +100,7 @@ module.exports = {
     const [, , childId, date] = ctx.callbackQuery.data.split("_");
 
     if (!Types.ObjectId.isValid(childId)) {
-      return ctx.reply("ID enfant invalide");
+      return ctx.reply("ID de l'enfant invalide");
     }
 
     const childObjectId = new Types.ObjectId(childId);
@@ -105,15 +115,14 @@ module.exports = {
 
     const child = await Child.findById(childId).lean();
     if (!child) {
-      return ctx.answerCbQuery("Données de l’enfant introuvables", {
+      return ctx.answerCbQuery("Données de l'enfant introuvables", {
         show_alert: true,
       });
     }
 
-    // Определяем роль
+    // Détermination du rôle
     const telegramId = ctx.from.id;
     const session = await sessionService.getSession(telegramId);
-
 
     if (!session || session.expiresAt < Date.now()) {
       return ctx.answerCbQuery("Veuillez vous reconnecter", {
@@ -121,12 +130,9 @@ module.exports = {
       });
     }
 
-    
-
     const isAdmin = session.role === "admin";
 
-
-    // Подсчёты
+    // Calculs
     const weekStart = moment(date).startOf("isoWeek").format("YYYY-MM-DD");
     const visitsBeforeToday = await Visit.find({
       childId,
@@ -145,6 +151,8 @@ module.exports = {
       mealCount = 0;
 
     for (const v of visits) {
+      if (!v.startTime || !v.endTime) continue; // ⬅️ защита от undefined
+
       const start = moment(v.startTime, "HH:mm");
       const end = moment(v.endTime, "HH:mm");
       const duration = moment.duration(end.diff(start)).asHours();
@@ -171,7 +179,12 @@ module.exports = {
     const servicePay = visits.length > 0 ? child.serviceRate : 0;
     const totalPay = regularPay + overtimePay + mealPay + servicePay;
 
-    let text = `📅 ${moment(date).format("D MMMM YYYY")}\n`;
+    // Формируем дату с капитализацией месяца
+    const day = moment(date).format("D");
+    const monthName = capitalizeFirstLetter(moment(date).format("MMMM"));
+    const year = moment(date).format("YYYY");
+
+    let text = `📅 ${day} ${monthName} ${year}\n`;
     text += `⏱ Heures totales : ${totalHours.toFixed(2)}\n`;
     text += `   ├ Heures normales : ${regularHours.toFixed(2)}\n`;
     text += `   └ Heures supplémentaires : ${overtimeHours.toFixed(2)}\n\n`;
@@ -185,13 +198,12 @@ module.exports = {
 
     const buttons = [];
     visits.forEach((v) => {
-      text += `• ${v.startTime} - ${v.endTime}${v.hadLunch ? " 🍽" : ""}\n`;
+      const endTimeDisplay = v.endTime ? v.endTime : "en cours";
+      text += `• ${v.startTime} - ${endTimeDisplay}${v.hadLunch ? " 🍽" : ""}\n`;
       if (isAdmin) {
-
-        // только админ может удалять
         buttons.push([
           {
-            text: `🗑 Supprimer ${v.startTime}-${v.endTime}`,
+            text: `🗑 Supprimer ${v.startTime}-${endTimeDisplay}`,
             callback_data: `delv_${v._id}`,
           },
         ]);

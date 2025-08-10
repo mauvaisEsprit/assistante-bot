@@ -31,8 +31,11 @@ module.exports = (bot) => {
 
     await ctx.answerCbQuery();
 
-    await ctx.reply(
-      `❗ Supprimer cet enregistrement ?\n📅 ${visit.date}\n🕒 ${visit.startTime} - ${visit.endTime}`,
+await ctx.reply(
+  `❗ Supprimer cet enregistrement ?\n📅 ${visit.date}\n🕒 ${visit.startTime} - ${visit.endTime ? visit.endTime : 'en cours'}`
+  ,
+
+
       {
         reply_markup: {
           inline_keyboard: [

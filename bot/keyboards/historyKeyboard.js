@@ -1,14 +1,22 @@
 const { Markup } = require('telegraf');
+const moment = require('moment');
+require('moment/locale/fr');
+moment.locale('fr');
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
 
 function monthsKeyboard(childId, months) {
-  const buttons = months.map(m => [
-    {
-      text: m.format('MMMM YYYY'),
+  const buttons = months.map(m => {
+    // форматируем месяц на французском
+    const monthText = capitalizeFirstLetter(m.format('MMMM')) + ' ' + m.format('YYYY');
+    return [{
+      text: monthText,
       callback_data: `history_dates_${childId}_${m.format('YYYY-MM')}`
-    }
-  ]);
+    }];
+  });
 
-  // Кнопка "Retour" вместо "Назад"
   buttons.push([{ text: '🔙 Retour', callback_data: `child_menu_${childId}` }]);
 
   return Markup.inlineKeyboard(buttons);

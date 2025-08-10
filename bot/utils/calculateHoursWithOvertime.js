@@ -19,6 +19,9 @@ function calculateHoursWithOvertime(visits, child) {
   let totalService = 0;
 
   for (const v of visits) {
+    // Пропускаем визиты без endTime
+    if (!v.endTime) continue;
+
     const m = moment(v.date);
     const weekKey = `${m.isoWeekYear()}-W${m.isoWeek()}`;
     if (!weeklyHours[weekKey]) weeklyHours[weekKey] = 0;
@@ -42,7 +45,14 @@ function calculateHoursWithOvertime(visits, child) {
     totalService += child.serviceRate;
   }
 
-  return { totalHours, regularHours, overtimeHours, totalMeal, totalService, totalDays: uniqueDays.size };
+  return { 
+    totalHours, 
+    regularHours, 
+    overtimeHours, 
+    totalMeal, 
+    totalService, 
+    totalDays: uniqueDays.size 
+  };
 }
 
 module.exports = { calculateHoursWithOvertime };
