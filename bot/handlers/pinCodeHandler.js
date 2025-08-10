@@ -5,6 +5,7 @@ const startHandler = require("../handlers/startHandler");
 const childActionsKeyboard = require("../keyboards/childActionsKeyboard");
 const addChildHandler = require("./addChildHandler");
 const editPriceHandler = require("./editPriceHandler");
+const bcrypt = require("bcrypt");
 
 module.exports = (bot) => {
   bot.start(async (ctx) => {
@@ -44,6 +45,15 @@ module.exports = (bot) => {
     return ctx.reply("🔐 Veuillez saisir votre code PIN :");
   });
 
+  async function findChildByPin(pin) {
+  const children = await Child.find().lean();
+  for (const child of children) {
+    const match = await bcrypt.compare(pin, child.pinCode);
+    if (match) return child;
+  }
+  return null;
+}
+
   bot.on("text", async (ctx) => {
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
@@ -56,6 +66,8 @@ module.exports = (bot) => {
     if (!session) {
       const pin = ctx.message.text.trim();
 
+    
+
       if (pin === process.env.ADMIN_PIN) {
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
         await sessionService.updateSession(telegramId, { role: "admin", expiresAt });
@@ -63,7 +75,7 @@ module.exports = (bot) => {
         return startHandler(ctx);
       }
 
-      const child = await Child.findOne({ pinCode: pin }).lean();
+      const child = await findChildByPin(pin);
       if (child) {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         await sessionService.updateSession(telegramId, {
