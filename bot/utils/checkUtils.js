@@ -1,6 +1,7 @@
 // utils/checkUtils.js
 const Visit = require('../models/Visit');
-const moment = require('moment');
+const moment = require('moment-timezone');
+
 
 async function checkIn(childId) {
   const now = moment().tz('Europe/Paris');
