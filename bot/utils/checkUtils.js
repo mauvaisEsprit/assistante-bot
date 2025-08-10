@@ -3,7 +3,7 @@ const Visit = require('../models/Visit');
 const moment = require('moment');
 
 async function checkIn(childId) {
-  const now = moment();
+  const now = moment().tz('Europe/Paris');
   const date = now.format('YYYY-MM-DD');
   const startTime = roundToNearest15Down(now);
 
