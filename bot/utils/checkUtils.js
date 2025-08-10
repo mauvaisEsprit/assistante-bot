@@ -17,7 +17,7 @@ async function checkIn(childId) {
 }
 
 async function checkOut(childId) {
-  const now = moment();
+  const now = moment().tz('Europe/Paris');
   const date = now.format('YYYY-MM-DD');
   const endTime = roundToNearest15Up(now); // Округляем вверх
 
