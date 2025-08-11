@@ -7,10 +7,10 @@ const addChildHandler = require("./addChildHandler");
 const editPriceHandler = require("./editPriceHandler");
 const bcrypt = require("bcrypt");
 const rateLimitForPin = require("../middleware/rateLimitForPin");
+const pinRateLimiter = require("../middleware/pinRateLimiter");
 
 module.exports = (bot) => {
   bot.start(rateLimitForPin(10000), async (ctx) => {
-    
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
 
@@ -48,16 +48,18 @@ module.exports = (bot) => {
   });
 
   async function findChildByPin(pin) {
-  const children = await Child.find().lean();
-  for (const child of children) {
-    const match = await bcrypt.compare(pin, child.pinCode);
-    if (match) return child;
+    const children = await Child.find().lean();
+    for (const child of children) {
+      const match = await bcrypt.compare(pin, child.pinCode);
+      if (match) return child;
+    }
+    return null;
   }
-  return null;
-}
 
-  bot.on("text", rateLimitForPin(10000), async (ctx) => {
-    
+  const MAX_ATTEMPTS = 3;
+const BLOCK_TIME_MS = 1 * 60 * 1000; // 10 минут
+
+  bot.on("text", rateLimitForPin(3000), pinRateLimiter, async (ctx) => {
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
 
@@ -69,22 +71,25 @@ module.exports = (bot) => {
     if (!session) {
       const pin = ctx.message.text.trim();
 
-    
-
       if (pin === process.env.ADMIN_PIN) {
+        pinRateLimiter.attemptsMap.delete(telegramId);
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-        await sessionService.updateSession(telegramId, { role: "admin", expiresAt });
+        await sessionService.updateSession(telegramId, {
+          role: "admin",
+          expiresAt,
+        });
         await ctx.reply("✅ Vous êtes connecté en tant qu’administrateur.");
         return startHandler(ctx);
       }
 
       const child = await findChildByPin(pin);
       if (child) {
+        pinRateLimiter.attemptsMap.delete(telegramId);
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         await sessionService.updateSession(telegramId, {
           role: "parent",
           childId: child._id,
-          expiresAt
+          expiresAt,
         });
 
         const keyboard = await childActionsKeyboard(child._id, "parent");
@@ -93,6 +98,21 @@ module.exports = (bot) => {
           { parse_mode: "Markdown", reply_markup: keyboard.reply_markup }
         );
       }
+
+      // Если пин неверный
+      userData.failedAttempts++;
+      if (userData.failedAttempts >= MAX_ATTEMPTS) {
+        userData.blockedUntil = Date.now() + BLOCK_TIME_MS;
+        await ctx.reply(
+          `🚫 Trop de tentatives échouées. Blocage pendant 10 minutes.`
+        );
+      } else {
+        await ctx.reply(
+          `❌ PIN incorrect. Tentative ${userData.failedAttempts} sur ${MAX_ATTEMPTS}.`
+        );
+      }
+
+      pinRateLimiter.attemptsMap.set(telegramId, userData);
 
       return ctx.reply("❌ PIN incorrect. Veuillez réessayer.");
     }
@@ -106,11 +126,13 @@ module.exports = (bot) => {
     }
   });
 
-  bot.action("logout", async (ctx) => {
+  bot.action("logout", rateLimitForPin(10000), async (ctx) => {
     await ctx.answerCbQuery();
     const telegramId = ctx.from.id;
     await sessionService.deleteSession(telegramId);
     await ctx.answerCbQuery("Vous avez été déconnecté.");
-    await ctx.reply("👋 Vous êtes bien déconnecté. Pour vous reconnecter, veuillez saisir votre code PIN.");
+    await ctx.reply(
+      "👋 Vous êtes bien déconnecté. Pour vous reconnecter, veuillez saisir votre code PIN."
+    );
   });
 };
