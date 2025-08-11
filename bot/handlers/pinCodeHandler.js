@@ -9,7 +9,7 @@ const bcrypt = require("bcrypt");
 const rateLimitForPin = require("../middleware/rateLimitForPin");
 
 module.exports = (bot) => {
-  bot.start(rateLimitForPin(5000), async (ctx) => {
+  bot.start(rateLimitForPin(10000), async (ctx) => {
     
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
@@ -56,7 +56,7 @@ module.exports = (bot) => {
   return null;
 }
 
-  bot.on("text", rateLimitForPin(5000), async (ctx) => {
+  bot.on("text", rateLimitForPin(10000), async (ctx) => {
     
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
