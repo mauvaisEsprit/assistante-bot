@@ -11,7 +11,7 @@ const rateLimitForPin = (timeoutMs) => {
       const diff = now - lastTime;
       if (diff < timeoutMs) {
         // Если прошло меньше timeoutMs, блокируем
-        return ctx.reply(`⏳ Пожалуйста, подождите еще ${Math.ceil((timeoutMs - diff)/1000)} секунд перед повторной попыткой.`);
+        return ctx.reply(`⏳ Merci d'attendre encore ${Math.ceil((timeoutMs - diff)/1000)} secondes avant de réessayer.`);
       }
     }
 
