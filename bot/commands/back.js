@@ -13,6 +13,7 @@ module.exports = (bot) => {
   });
 
   bot.action('select_child',sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
     const telegramId = ctx.from.id;
     const session = await sessionService.getSession(telegramId);
 
@@ -43,6 +44,7 @@ module.exports = (bot) => {
   });
 
   bot.action(/child_menu_(.+)/,sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
     const telegramId = ctx.from.id;
     const childIdFromButton = ctx.match[1];
     const session = await sessionService.getSession(telegramId = ctx.from.id);

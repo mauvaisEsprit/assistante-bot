@@ -9,6 +9,7 @@ const bcrypt = require("bcrypt");
 
 module.exports = (bot) => {
   bot.start(async (ctx) => {
+    
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
 
@@ -55,6 +56,7 @@ module.exports = (bot) => {
 }
 
   bot.on("text", async (ctx) => {
+    
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
 
@@ -104,6 +106,7 @@ module.exports = (bot) => {
   });
 
   bot.action("logout", async (ctx) => {
+    await ctx.answerCbQuery();
     const telegramId = ctx.from.id;
     await sessionService.deleteSession(telegramId);
     await ctx.answerCbQuery("Vous avez été déconnecté.");

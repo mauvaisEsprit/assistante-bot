@@ -3,6 +3,7 @@ const express = require("express");
 const { Telegraf } = require("telegraf");
 const connectDB = require("./config/db"); // путь зависит от структуры
 const webhook = require("./webhook"); // компонент для регистрации вебхука
+const rateLimit = require("./middleware/rateLimit");
 
 // 1. Подключение к MongoDB
 connectDB();
@@ -14,6 +15,11 @@ console.log("✅ Бот инициализирован");
 // 3. Инициализация Express
 const app = express();
 
+// 3.1. Регистрируем middleware rateLimit
+console.log('444');
+//app.use(rateLimit());
+
+
 // 4. Регистрируем вебхук с ботом
 (async () => {
   await webhook(app, bot);
@@ -21,7 +27,6 @@ const app = express();
 })().catch((err) => {
   console.error("❌ Ошибка при регистрации вебхука:", err);
 });
-
 // 4. Подключаем UpTime robot
 app.get("/ping", (req, res) => {
   res.send("Pong!");

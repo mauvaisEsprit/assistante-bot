@@ -5,17 +5,38 @@ const sessionAuthMiddleware = require('../middleware/sessionAuthMiddleware');
 
 
 module.exports = (bot) => {
-  bot.action(/^add_hours_(.+)$/,sessionAuthMiddleware, addHoursHandler.startAddHours);
-  bot.action(/^add_month_([a-f\d]{24})_(\d{4}-\d{2})$/,sessionAuthMiddleware, addHoursHandler.selectMonth);
-  bot.action(/^add_day_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})$/,sessionAuthMiddleware, addHoursHandler.selectDate);
+  bot.action(/^add_hours_(.+)$/,sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
+    await addHoursHandler.startAddHours(ctx, ctx.match[1]);
+  });
+  bot.action(/^add_month_([a-f\d]{24})_(\d{4}-\d{2})$/,sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
+    await addHoursHandler.selectMonth(ctx, ctx.match[1], ctx.match[2]);
+  });
+  bot.action(/^add_day_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})$/,sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
+    await addHoursHandler.selectDate(ctx, ctx.match[1], ctx.match[2]);
+  });  
 
-  bot.action(/^start_hour_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})_(\d{2})$/,sessionAuthMiddleware, addHoursHandler.selectStartHour);
-  bot.action(/^start_minute_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})_(.*?)_(\d{2})_(\d{2})$/,sessionAuthMiddleware, addHoursHandler.selectStartMinute);
+  bot.action(/^start_hour_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})_(\d{2})$/,sessionAuthMiddleware, async (ctx) => { 
+    await ctx.answerCbQuery();
+    await addHoursHandler.selectStartHour(ctx, ctx.match[1], ctx.match[2], ctx.match[3]);
+  });  
+  bot.action(/^start_minute_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})_(.*?)_(\d{2})_(\d{2})$/,sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
+    await addHoursHandler.selectStartMinute(ctx, ctx.match[1], ctx.match[2], ctx.match[3], ctx.match[4], ctx.match[5]);
+  }); 
 
-  bot.action(/^end_hour_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})_(.*?)_(\d{2})$/,sessionAuthMiddleware, addHoursHandler.selectEndHour);
-  bot.action(/^end_minute_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})_(.*?)_(\d{2})_(\d{2})$/,sessionAuthMiddleware, addHoursHandler.selectEndMinute);
-
+  bot.action(/^end_hour_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})_(.*?)_(\d{2})$/,sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
+    await addHoursHandler.selectEndHour(ctx, ctx.match[1], ctx.match[2], ctx.match[3], ctx.match[4]);
+  });  
+  bot.action(/^end_minute_([a-f\d]{24})_(\d{4}-\d{2}-\d{2})_(.*?)_(\d{2})_(\d{2})$/,sessionAuthMiddleware, async (ctx) => { 
+    await ctx.answerCbQuery();
+    await addHoursHandler.selectEndMinute(ctx, ctx.match[1], ctx.match[2], ctx.match[3], ctx.match[4], ctx.match[5]);
+  });  
   bot.action("lunch_yes",sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
     if (!ctx.session.pendingVisit) return ctx.answerCbQuery("Pas de données à enregistrer");
 
     const visit = new Visit({
@@ -39,6 +60,7 @@ module.exports = (bot) => {
   });
 
   bot.action("lunch_no",sessionAuthMiddleware, async (ctx) => {
+    await ctx.answerCbQuery();
     if (!ctx.session.pendingVisit) return ctx.answerCbQuery("Pas de données à enregistrer");
 
     const visit = new Visit({
