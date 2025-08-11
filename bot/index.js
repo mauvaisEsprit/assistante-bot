@@ -3,7 +3,7 @@ const express = require("express");
 const { Telegraf } = require("telegraf");
 const connectDB = require("./config/db"); // путь зависит от структуры
 const webhook = require("./webhook"); // компонент для регистрации вебхука
-const rateLimit = require("./middleware/rateLimit");
+
 
 // 1. Подключение к MongoDB
 connectDB();
@@ -15,9 +15,7 @@ console.log("✅ Бот инициализирован");
 // 3. Инициализация Express
 const app = express();
 
-// 3.1. Регистрируем middleware rateLimit
-console.log('444');
-//app.use(rateLimit());
+
 
 
 // 4. Регистрируем вебхук с ботом
