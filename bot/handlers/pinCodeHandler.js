@@ -7,7 +7,7 @@ const addChildHandler = require("./addChildHandler");
 const editPriceHandler = require("./editPriceHandler");
 const bcrypt = require("bcrypt");
 const rateLimitForPin = require("../middleware/rateLimitForPin");
-const pinRateLimiter = require("../middleware/pinRateLimiter");
+const { pinRateLimiter, attemptsMap } = require("../middleware/pinRateLimiter");
 
 module.exports = (bot) => {
   bot.start(rateLimitForPin(10000), async (ctx) => {
@@ -57,65 +57,72 @@ module.exports = (bot) => {
   }
 
   const MAX_ATTEMPTS = 3;
-const BLOCK_TIME_MS = 1 * 60 * 1000; // 10 минут
+  const BLOCK_TIME_MS = 1 * 60 * 1000; // 10 минут
 
   bot.on("text", rateLimitForPin(3000), pinRateLimiter, async (ctx) => {
-    const telegramId = ctx.from.id;
-    let session = await sessionService.getSession(telegramId);
+  const telegramId = ctx.from.id;
+  let session = await sessionService.getSession(telegramId);
 
-    if (session && session.expiresAt < Date.now()) {
-      await sessionService.deleteSession(telegramId);
-      session = null;
+  if (session && session.expiresAt < Date.now()) {
+    await sessionService.deleteSession(telegramId);
+    session = null;
+  }
+
+  if (!session) {
+    const pin = ctx.message.text.trim();
+
+    // Получаем или создаём объект попыток для пользователя
+    let userData = attemptsMap.get(telegramId) || { failedAttempts: 0, blockedUntil: 0 };
+    const now = Date.now();
+
+    // Проверяем, заблокирован ли пользователь (этот момент можно оставить в pinRateLimiter, но тут для наглядности)
+    if (userData.blockedUntil > now) {
+      const waitMin = Math.ceil((userData.blockedUntil - now) / 60000);
+      return ctx.reply(`⏳ Trop de tentatives bloquées. Réessayez dans ${waitMin} minute(s).`);
     }
 
-    if (!session) {
-      const pin = ctx.message.text.trim();
-
-      if (pin === process.env.ADMIN_PIN) {
-        pinRateLimiter.attemptsMap.delete(telegramId);
-        const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-        await sessionService.updateSession(telegramId, {
-          role: "admin",
-          expiresAt,
-        });
-        await ctx.reply("✅ Vous êtes connecté en tant qu’administrateur.");
-        return startHandler(ctx);
-      }
-
-      const child = await findChildByPin(pin);
-      if (child) {
-        pinRateLimiter.attemptsMap.delete(telegramId);
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-        await sessionService.updateSession(telegramId, {
-          role: "parent",
-          childId: child._id,
-          expiresAt,
-        });
-
-        const keyboard = await childActionsKeyboard(child._id, "parent");
-        return ctx.reply(
-          `✅ Vous êtes connecté en tant que parent de ${child.name}\n\n👶 *${child.name}*\n💶 Tarif horaire : €${child.hourlyRate}\n🍽️ Repas : €${child.mealRate}\n🧼 Service : €${child.serviceRate}\n`,
-          { parse_mode: "Markdown", reply_markup: keyboard.reply_markup }
-        );
-      }
-
-      // Если пин неверный
-      userData.failedAttempts++;
-      if (userData.failedAttempts >= MAX_ATTEMPTS) {
-        userData.blockedUntil = Date.now() + BLOCK_TIME_MS;
-        await ctx.reply(
-          `🚫 Trop de tentatives échouées. Blocage pendant 10 minutes.`
-        );
-      } else {
-        await ctx.reply(
-          `❌ PIN incorrect. Tentative ${userData.failedAttempts} sur ${MAX_ATTEMPTS}.`
-        );
-      }
-
-      pinRateLimiter.attemptsMap.set(telegramId, userData);
-
-      return ctx.reply("❌ PIN incorrect. Veuillez réessayer.");
+    // Проверка пина админа
+    if (pin === process.env.ADMIN_PIN) {
+      attemptsMap.delete(telegramId); // сбросить счетчик после успеха
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+      await sessionService.updateSession(telegramId, {
+        role: "admin",
+        expiresAt,
+      });
+      await ctx.reply("✅ Vous êtes connecté en tant qu’administrateur.");
+      return startHandler(ctx);
     }
+
+    // Проверка пина ребенка
+    const child = await findChildByPin(pin);
+    if (child) {
+      attemptsMap.delete(telegramId); // сбросить счетчик после успеха
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      await sessionService.updateSession(telegramId, {
+        role: "parent",
+        childId: child._id,
+        expiresAt,
+      });
+
+      const keyboard = await childActionsKeyboard(child._id, "parent");
+      return ctx.reply(
+        `✅ Vous êtes connecté en tant que parent de ${child.name}\n\n👶 *${child.name}*\n💶 Tarif horaire : €${child.hourlyRate}\n🍽 Repas : €${child.mealRate}\n🧼 Service : €${child.serviceRate}`,
+        { parse_mode: "Markdown", reply_markup: keyboard.reply_markup }
+      );
+    }
+
+    // Если пин неверный — увеличиваем счетчик
+    userData.failedAttempts++;
+    if (userData.failedAttempts >= MAX_ATTEMPTS) {
+      userData.blockedUntil = now + BLOCK_TIME_MS;
+      await ctx.reply(`🚫 Trop de tentatives échouées. Blocage pendant ${BLOCK_TIME_MS / 60000} minutes.`);
+    } else {
+      await ctx.reply(`❌ PIN incorrect. Tentative ${userData.failedAttempts} sur ${MAX_ATTEMPTS}.`);
+    }
+    attemptsMap.set(telegramId, userData);
+
+    return; // завершаем здесь
+  }
 
     if (await addChildHandler.isAdding(telegramId)) {
       return addChildHandler.processInputStart(ctx);

@@ -18,4 +18,4 @@ function pinRateLimiter(ctx, next) {
   return next();
 }
 
-module.exports = pinRateLimiter;
+module.exports = { pinRateLimiter, attemptsMap }; 
