@@ -1,21 +1,25 @@
-// middleware/rateLimitForPin.js
-const rateLimitMap = new Map(); // key: userId, value: timestamp последнего запроса
+const rateLimitForPin = (timeoutMs) => {
+  // В памяти храним время последнего ввода пина на пользователя
+  const lastAttemptMap = new Map();
 
-function rateLimitForPin(timeoutMs) {
-  return (ctx, next) => {
-    const userId = ctx.from?.id;
-    if (!userId) return next();
-
-    const lastTime = rateLimitMap.get(userId) || 0;
+  return async (ctx, next) => {
+    const userId = ctx.from.id;
     const now = Date.now();
 
-    if (now - lastTime < timeoutMs) {
-      return ctx.reply('⏳ Attendez un peu avant de saisir votre code PIN.');
+    if (lastAttemptMap.has(userId)) {
+      const lastTime = lastAttemptMap.get(userId);
+      const diff = now - lastTime;
+      if (diff < timeoutMs) {
+        // Если прошло меньше timeoutMs, блокируем
+        return ctx.reply(`⏳ Пожалуйста, подождите еще ${Math.ceil((timeoutMs - diff)/1000)} секунд перед повторной попыткой.`);
+      }
     }
 
-    rateLimitMap.set(userId, now);
-    return next();
+    // Регистрируем время попытки (независимо от результата проверки PIN)
+    lastAttemptMap.set(userId, now);
+
+    await next(); // пропускаем дальше к обработке PIN
   };
-}
+};
 
 module.exports = rateLimitForPin;
