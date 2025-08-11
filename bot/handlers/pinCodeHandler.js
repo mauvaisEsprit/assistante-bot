@@ -6,9 +6,10 @@ const childActionsKeyboard = require("../keyboards/childActionsKeyboard");
 const addChildHandler = require("./addChildHandler");
 const editPriceHandler = require("./editPriceHandler");
 const bcrypt = require("bcrypt");
+const rateLimitForPin = require("../middleware/rateLimitForPin");
 
 module.exports = (bot) => {
-  bot.start(async (ctx) => {
+  bot.start(rateLimitForPin(5000), async (ctx) => {
     
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
@@ -55,7 +56,7 @@ module.exports = (bot) => {
   return null;
 }
 
-  bot.on("text", async (ctx) => {
+  bot.on("text", rateLimitForPin(5000), async (ctx) => {
     
     const telegramId = ctx.from.id;
     let session = await sessionService.getSession(telegramId);
